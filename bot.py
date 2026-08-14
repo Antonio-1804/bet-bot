@@ -1,64 +1,92 @@
 import requests
 
-TELEGRAM_TOKEN = "8913517520:AAFMJUKyLlzWZna_F9Xemvneejq51jzyeCE"
+TELEGRAM_TOKEN = "DEIN_TELEGRAM_TOKEN"  # Trage hier deinen Bot-Token ein
 CHAT_ID = "255781883"
-ODDS_API_KEY = "fceda6486f352916f95f8fc82100c"
+ODDS_API_KEY = "DEIN_ODDS_API_KEY"      # Trage hier deinen Odds-API-Key ein
 
+# Alle gewünschten Ligen:
 LEAGUES = [
-    "soccer_germany_bundesliga",
-    "soccer_epl",
-    "soccer_spain_la_liga",
-    "soccer_italy_serie_a"
+    "soccer_germany_bundesliga",       # Deutschland
+    "soccer_epl",                      # England
+    "soccer_spain_la_liga",            # Spanien
+    "soccer_italy_serie_a",            # Italien
+    "soccer_france_ligue_one",         # Frankreich
+    "soccer_netherlands_eredivisie"    # Niederlande
 ]
 
-def get_odds_and_predictions():
-    messages = []
-    
+def get_odds():
+    all_msg = "🔥 VALUE BET EMPFEHLUNGEN:\n\n"
+    value_found = False
+
     for league in LEAGUES:
         url = f"https://api.the-odds-api.com/v4/sports/{league}/odds/?apiKey={ODDS_API_KEY}&regions=eu&markets=h2h"
-        res = requests.get(url)
-        data = res.json()
-        
-        if isinstance(data, list) and len(data) > 0:
-            for match in data[:3]:  # Top 3 Spiele pro Liga
-                home = match.get('home_team')
-                away = match.get('away_team')
-                
-                # Quoten auslesen
-                bookmakers = match.get('bookmakers', [])
-                if bookmakers:
-                    outcomes = bookmakers[0]['markets'][0]['outcomes']
-                    home_odds = next((o['price'] for o in outcomes if o['name'] == home), None)
-                    away_odds = next((o['price'] for o in outcomes if o['name'] == away), None)
-                    draw_odds = next((o['price'] for o in outcomes if o['name'] == 'Draw'), None)
-                    
-                    # Prognose basierend auf den Quoten berechnen
-                    if home_odds and away_odds:
-                        if home_odds < away_odds:
-                            prog = f"💡 Prognose: Tendenz {home} (Favorit)"
-                        else:
-                            prog = f"💡 Prognose: Tendenz {away} (Favorit)"
-                    else:
-                        prog = "💡 Prognose: Ausgeglichen"
+        try:
+            res = requests.get(url)
+            data = res.json()
+        except Exception:
+            continue
 
-                    text = (
-                        f"⚽ **{home} vs {away}**\n"
-                        f"📊 Quoten: 1: {home_odds} | X: {draw_odds} | 2: {away_odds}\n"
-                        f"{prog}\n"
-                        f"----------------------------"
-                    )
-                    messages.append(text)
-                
-    if not messages:
-        return "Keine aktuellen Quoten oder Spiele gefunden."
-    
-    return "🔥 **QUOTEN & PROGNOSEN HEUTE** 🔥\n\n" + "\n\n".join(messages)
+        if not isinstance(data, list):
+            continue
 
-def send_telegram(message):
+        for match in data:
+            home = match.get('home_team')
+            away = match.get('away_team')
+            bookmakers = match.get('bookmakers', [])
+            
+            if not bookmakers:
+                continue
+
+            odds_sum = {'home': 0, 'draw': 0, 'away': 0}
+            counts = {'home': 0, 'draw': 0, 'away': 0}
+
+            for bm in bookmakers:
+                for market in bm.get('markets', []):
+                    for outcome in market.get('outcomes', []):
+                        name = outcome.get('name')
+                        price = outcome.get('price')
+                        if name == home:
+                            odds_sum['home'] += price
+                            counts['home'] += 1
+                        elif name == away:
+                            odds_sum['away'] += price
+                            counts['away'] += 1
+                        elif name == 'Draw':
+                            odds_sum['draw'] += price
+                            counts['draw'] += 1
+
+            avg = {k: (odds_sum[k] / counts[k]) if counts[k] > 0 else 0 for k in odds_sum}
+
+            for bm in bookmakers:
+                bm_title = bm.get('title')
+                for market in bm.get('markets', []):
+                    for outcome in market.get('outcomes', []):
+                        name = outcome.get('name')
+                        price = outcome.get('price')
+                        
+                        target_key = 'home' if name == home else ('away' if name == away else 'draw')
+                        if avg.get(target_key, 0) > 0:
+                            value = ((price / avg[target_key]) - 1) * 100
+                            if value >= 5.0:
+                                value_found = True
+                                all_msg += f"⚽ {home} vs {away}\n"
+                                all_msg += f"👉 TIPP: {name}\n"
+                                all_msg += f"🏢 Buchmacher: {bm_title}\n"
+                                all_msg += f"📈 Quote: {price} (Ø: {avg[target_key]:.2f})\n"
+                                all_msg += f"🔥 Value: +{value:.1f}%\n\n"
+
+    if not value_found:
+        return "Aktuell keine Value Bets (>5% Abweichung) in den Ligen gefunden."
+
+    return all_msg
+
+def send_telegram(text):
+    # Telegram teilt lange Nachrichten bei Bedarf
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    payload = {"chat_id": CHAT_ID, "text": text}
     requests.post(url, json=payload)
 
 if __name__ == "__main__":
-    msg = get_odds_and_predictions()
+    msg = get_odds()
     send_telegram(msg)
+    print(msg)
