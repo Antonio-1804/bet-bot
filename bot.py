@@ -1,8 +1,8 @@
 import requests
 
-TELEGRAM_TOKEN = "DEIN_TELEGRAM_TOKEN"  # Trage hier deinen Bot-Token ein
+TELEGRAM_TOKEN = "8913517520:AAFMJUKyLlzWZna_F9Xemvneejq51jzyeCE" # Trage hier deinen Bot-Token ein
 CHAT_ID = "255781883"
-ODDS_API_KEY = "DEIN_ODDS_API_KEY"      # Trage hier deinen Odds-API-Key ein
+ODDS_API_KEY = "fceda6486f06f352916f95f8fc82100c"      # Trage hier deinen Odds-API-Key ein
 
 # Alle gewünschten Ligen:
 LEAGUES = [
