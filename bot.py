@@ -81,10 +81,15 @@ def get_odds():
     return all_msg
 
 def send_telegram(text):
-    # Telegram teilt lange Nachrichten bei Bedarf
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": text}
-    requests.post(url, json=payload)
+    if len(text) > 4000:
+        for i in range(0, len(text), 4000):
+            part = text[i:i+4000]
+            r = requests.post(url, json={"chat_id": CHAT_ID, "text": part})
+            print("Telegram Status:", r.status_code, r.text)
+    else:
+        r = requests.post(url, json={"chat_id": CHAT_ID, "text": text})
+        print("Telegram Status:", r.status_code, r.text)
 
 if __name__ == "__main__":
     msg = get_odds()
