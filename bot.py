@@ -7,10 +7,19 @@ CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
 SPORTS = [
     "soccer_germany_bundesliga",
+    "soccer_germany_bundesliga2",
     "soccer_epl",
+    "soccer_efl_champ",
     "soccer_spain_la_liga",
     "soccer_italy_serie_a",
-    "soccer_uefa_champs_league"
+    "soccer_uefa_champs_league",
+    "soccer_france_ligue_one",
+    "soccer_netherlands_eredivisie",
+    "soccer_denmark_superliga",
+    "soccer_norway_eliteserien",
+    "soccer_sweden_allsvenskan",
+    "soccer_brazil_campeonato",
+    "soccer_argentina_primera_division"
 ]
 
 def get_odds():
