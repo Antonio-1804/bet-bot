@@ -1,24 +1,28 @@
-name: Daily IPTV Update
+name: Daily Odds Bot
+
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 10 * * *' 
   workflow_dispatch:
 
 jobs:
-  update-playlist:
+  run-bot:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
+      - name: Code auschecken
+        uses: actions/checkout@v4
+
+      - name: Python einrichten
         uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      - name: Run Scraper
-        run: python scraper.py
-      - name: Commit and Push
-        run: |
-          git config --global user.name 'GitHub Action'
-          git config --global user.email 'action@github.com'
-          git add playlist.m3u
-          git commit -m "Update playlist" || exit 0
-          git push
+
+      - name: Bibliothek installieren
+        run: pip install requests
+
+      - name: Bot ausführen
+        env:
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python bot.py
