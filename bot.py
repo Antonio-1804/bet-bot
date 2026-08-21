@@ -123,3 +123,4 @@ if __name__ == "__main__":
     message = get_odds()
     send_telegram(message)
     print(message)
+    send_telegram("Testnachricht: Verbindung steht!")
