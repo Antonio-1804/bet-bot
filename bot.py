@@ -5,7 +5,6 @@ API_KEY = os.environ.get("ODDS_API_KEY")
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# Deine Wunsch-Ligen
 SPORTS = [
     "soccer_germany_bundesliga",
     "soccer_germany_bundesliga2",
@@ -18,6 +17,13 @@ SPORTS = [
     "soccer_spain_la_liga",
     "soccer_uefa_champs_league"
 ]
+
+def send_telegram(text):
+    if not text:
+        return
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    res = requests.post(url, json={"chat_id": CHAT_ID, "text": text})
+    print(f"Telegram Status: {res.status_code}")
 
 def get_top_picks():
     picks = []
@@ -40,6 +46,8 @@ def get_top_picks():
                 
             home_odds = []
             away_odds = []
+            over_15_odds = []
+            over_25_odds = []
             
             for bm in bookmakers:
                 for market in bm.get("markets", []):
@@ -49,41 +57,71 @@ def get_top_picks():
                                 home_odds.append(outcome.get("price"))
                             elif outcome.get("name") == away:
                                 away_odds.append(outcome.get("price"))
+                    elif market.get("key") == "totals":
+                        for outcome in market.get("outcomes", []):
+                            if outcome.get("name") == "Over":
+                                if outcome.get("point") == 1.5:
+                                    over_15_odds.append(outcome.get("price"))
+                                elif outcome.get("point") == 2.5:
+                                    over_25_odds.append(outcome.get("price"))
             
-            # Favorit Heimsieg (Quote zwischen 1.25 und 1.80)
+            league_name = sport.replace("soccer_", "").replace("_", " ").upper()
+
+            # 1. Favorit Heimsieg (1.20 bis 1.85)
             if home_odds:
                 avg_home = sum(home_odds) / len(home_odds)
-                if 1.25 <= avg_home <= 1.80:
+                if 1.20 <= avg_home <= 1.85:
                     picks.append({
                         "match": f"{home} vs. {away}",
-                        "league": sport.replace("soccer_", "").replace("_", " ").upper(),
-                        "tipp": f"Sieg {home}",
+                        "league": league_name,
+                        "tipp": f"Sieg 1 ({home})",
                         "quote": round(avg_home, 2),
-                        "kategorie": "Klarer Favorit"
+                        "kategorie": "Favorit Heimsieg"
                     })
             
-            # Favorit Auswärtssieg (Quote zwischen 1.25 und 1.80)
+            # 2. Favorit Auswärtssieg (1.20 bis 1.85)
             if away_odds:
                 avg_away = sum(away_odds) / len(away_odds)
-                if 1.25 <= avg_away <= 1.80:
+                if 1.20 <= avg_away <= 1.85:
                     picks.append({
                         "match": f"{home} vs. {away}",
-                        "league": sport.replace("soccer_", "").replace("_", " ").upper(),
-                        "tipp": f"Sieg {away}",
+                        "league": league_name,
+                        "tipp": f"Sieg 2 ({away})",
                         "quote": round(avg_away, 2),
-                        "kategorie": "Klarer Favorit"
+                        "kategorie": "Favorit Auswärtssieg"
+                    })
+
+            # 3. Über 1.5 Tore (1.15 bis 1.50)
+            if over_15_odds:
+                avg_o15 = sum(over_15_odds) / len(over_15_odds)
+                if 1.15 <= avg_o15 <= 1.50:
+                    picks.append({
+                        "match": f"{home} vs. {away}",
+                        "league": league_name,
+                        "tipp": "Über 1.5 Tore",
+                        "quote": round(avg_o15, 2),
+                        "kategorie": "Tor-Tipp (+1.5)"
+                    })
+
+            # 4. Über 2.5 Tore (1.40 bis 1.85)
+            if over_25_odds:
+                avg_o25 = sum(over_25_odds) / len(over_25_odds)
+                if 1.40 <= avg_o25 <= 1.85:
+                    picks.append({
+                        "match": f"{home} vs. {away}",
+                        "league": league_name,
+                        "tipp": "Über 2.5 Tore",
+                        "quote": round(avg_o25, 2),
+                        "kategorie": "Tor-Tipp (+2.5)"
                     })
 
     if not picks:
-        return "Aktuell keine passenden Favoriten-Spiele in den ausgewählten Ligen gefunden."
+        return "🤖 Bot-Status: Bot läuft fehlerfrei! Für heute wurden keine passenden Quoten (1.20–1.85) gefunden."
 
-    # Sortieren nach den sichersten Quoten (niedrigste zuerst)
     picks = sorted(picks, key=lambda x: x["quote"])
+    top_picks = picks[:10]
     
-    # Auf die besten 8 Spiele begrenzen
-    top_picks = picks[:8]
-    
-    msg = "📊 TOP-FAVORITEN & ANALYSEN DES TAGES:\n\n"
+    msg = "📊 TOP-TIPPS & ANALYSEN DES TAGES:\n\n"
     for p in top_picks:
         msg += f"⚽ {p['match']}\n"
         msg += f"🏆 Liga: {p['league']}\n"
@@ -92,12 +130,6 @@ def get_top_picks():
         msg += f"📌 Typ: {p['kategorie']}\n\n"
         
     return msg
-
-def send_telegram(text):
-    if not text or "Aktuell keine" in text:
-        return
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    requests.post(url, json={"chat_id": CHAT_ID, "text": text})
 
 if __name__ == "__main__":
     message = get_top_picks()
