@@ -11,8 +11,6 @@ SPORTS = [
     "soccer_italy_serie_a",
     "soccer_france_ligue_one",
     "soccer_netherlands_eredivisie",
-    "soccer_denmark_superliga",
-    "soccer_norway_eliteserien",
     "soccer_epl",
     "soccer_spain_la_liga",
     "soccer_uefa_champs_league"
@@ -24,6 +22,8 @@ def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     res = requests.post(url, json={"chat_id": CHAT_ID, "text": text})
     print(f"Telegram Status: {res.status_code}")
+    if res.status_code != 200:
+        print(f"Telegram Antwort: {res.text}")
 
 def get_top_picks():
     picks = []
@@ -32,6 +32,7 @@ def get_top_picks():
         url = f"https://api.theoddsapi.com/v4/sports/{sport}/odds/?apiKey={API_KEY}&regions=eu&markets=h2h,totals"
         res = requests.get(url)
         if res.status_code != 200:
+            print(f"API Fehler bei {sport}: {res.status_code}")
             continue
             
         games = res.json()
@@ -67,7 +68,7 @@ def get_top_picks():
             
             league_name = sport.replace("soccer_", "").replace("_", " ").upper()
 
-            # 1. Favorit Heimsieg (1.20 bis 1.85)
+            # 1. Favorit Heimsieg (1.20 - 1.85)
             if home_odds:
                 avg_home = sum(home_odds) / len(home_odds)
                 if 1.20 <= avg_home <= 1.85:
@@ -79,7 +80,7 @@ def get_top_picks():
                         "kategorie": "Favorit Heimsieg"
                     })
             
-            # 2. Favorit Auswärtssieg (1.20 bis 1.85)
+            # 2. Favorit Auswärtssieg (1.20 - 1.85)
             if away_odds:
                 avg_away = sum(away_odds) / len(away_odds)
                 if 1.20 <= avg_away <= 1.85:
@@ -91,7 +92,7 @@ def get_top_picks():
                         "kategorie": "Favorit Auswärtssieg"
                     })
 
-            # 3. Über 1.5 Tore (1.15 bis 1.50)
+            # 3. Über 1.5 Tore (1.15 - 1.50)
             if over_15_odds:
                 avg_o15 = sum(over_15_odds) / len(over_15_odds)
                 if 1.15 <= avg_o15 <= 1.50:
@@ -100,10 +101,10 @@ def get_top_picks():
                         "league": league_name,
                         "tipp": "Über 1.5 Tore",
                         "quote": round(avg_o15, 2),
-                        "kategorie": "Tor-Tipp (+1.5)"
+                        "kategorie": "Tor-Tipp (<1.5)"
                     })
 
-            # 4. Über 2.5 Tore (1.40 bis 1.85)
+            # 4. Über 2.5 Tore (1.40 - 1.85)
             if over_25_odds:
                 avg_o25 = sum(over_25_odds) / len(over_25_odds)
                 if 1.40 <= avg_o25 <= 1.85:
@@ -112,11 +113,11 @@ def get_top_picks():
                         "league": league_name,
                         "tipp": "Über 2.5 Tore",
                         "quote": round(avg_o25, 2),
-                        "kategorie": "Tor-Tipp (+2.5)"
+                        "kategorie": "Tor-Tipp (<2.5)"
                     })
 
     if not picks:
-        return "🤖 Bot-Status: Bot läuft fehlerfrei! Für heute wurden keine passenden Quoten (1.20–1.85) gefunden."
+        return "🤖 Bot-Status: Bot läuft fehlerfrei! Für heute wurden keine passenden Quoten gefunden."
 
     picks = sorted(picks, key=lambda x: x["quote"])
     top_picks = picks[:10]
