@@ -29,7 +29,7 @@ def get_top_picks():
     picks = []
     
     for sport in SPORTS:
-        url = f"https://api.the-oddsapi.com/v4/sports/{sport}/odds?apiKey={API_KEY}&regions=eu&markets=h2h,totals"
+        url = f"https://api.the-odds-api.com/v4/sports/{sport}/odds?apiKey={API_KEY}&regions=eu&markets=h2h,totals"
         res = requests.get(url)
         if res.status_code != 200:
             print(f"API Fehler bei {sport}: {res.status_code}")
