@@ -1,9 +1,11 @@
 import os
 import requests
 
-API_KEY = os.environ.get("ODDS_API_KEY")
-TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
-CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
+API_KEY = "5e78f9f4bbbc50f46ae1e8bd4b27912d"
+TELEGRAM_TOKEN = "8913517520:AAFMJUKyLlzWZna_F9Xemvneejq51jzyeCE"
+CHAT_ID = "255781883"
+
+
 
 SPORTS = [
     "soccer_germany_bundesliga",
