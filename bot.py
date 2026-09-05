@@ -24,7 +24,7 @@ def send_telegram(message):
 
 
 def scan_matches():
-    today = datetime.datetime.utcnow().date()
+    now = datetime.datetime.now(datetime.timezone.utc)
     found_bets = []
 
     for league in LEAGUES:
@@ -46,7 +46,14 @@ def scan_matches():
             commence_time = datetime.datetime.fromisoformat(
                 match["commence_time"].replace("Z", "+00:00")
             )
-            if commence_time.date() != today:
+            time_diff = commence_time - now
+
+            # Spiele der nächsten 36 Stunden erfassen
+            if not (
+                datetime.timedelta(hours=0)
+                <= time_diff
+                <= datetime.timedelta(hours=36)
+            ):
                 continue
 
             home = match["home_team"]
@@ -55,34 +62,44 @@ def scan_matches():
             if not bookmakers:
                 continue
 
-            markets = bookmakers[0].get("markets", [])
+            # Durchsuche Quoten
+            for bm in bookmakers:
+                for market in bm.get("markets", []):
+                    # 1. Heimsieg (1.45 bis 1.90)
+                    if market["key"] == "h2h":
+                        for outcome in market["outcomes"]:
+                            if (
+                                outcome["name"] == home
+                                and 1.45 <= outcome["price"] <= 1.90
+                            ):
+                                tip = (
+                                    f"⚽ *{home} vs. {away}*\n"
+                                    f"📌 Tipp: Heimsieg ({home})\n"
+                                    f"📈 Quote: {outcome['price']}\n"
+                                )
+                                if tip not in found_bets:
+                                    found_bets.append(tip)
 
-            for market in markets:
-                # 1. Filter: Nur Heimsieg (1.50 bis 1.85)
-                if market["key"] == "h2h":
-                    for outcome in market["outcomes"]:
-                        if outcome["name"] == home and 1.50 <= outcome["price"] <= 1.85:
-                            found_bets.append(
-                                f"⚽ *{home} vs. {away}*\n"
-                                f"📌 Tipp: Heimsieg ({home})\n"
-                                f"📈 Quote: {outcome['price']}\n"
-                            )
-
-                # 2. Filter: Beide treffen - JA (1.50 bis 1.85)
-                elif market["key"] == "btts":
-                    for outcome in market["outcomes"]:
-                        if outcome["name"] == "Yes" and 1.50 <= outcome["price"] <= 1.85:
-                            found_bets.append(
-                                f"⚽ *{home} vs. {away}*\n"
-                                f"📌 Tipp: Beide treffen (BTTS: Ja)\n"
-                                f"📈 Quote: {outcome['price']}\n"
-                            )
+                    # 2. BTTS Ja (1.45 bis 1.90)
+                    elif market["key"] == "btts":
+                        for outcome in market["outcomes"]:
+                            if (
+                                outcome["name"] == "Yes"
+                                and 1.45 <= outcome["price"] <= 1.90
+                            ):
+                                tip = (
+                                    f"⚽ *{home} vs. {away}*\n"
+                                    f"📌 Tipp: Beide treffen (BTTS)\n"
+                                    f"📈 Quote: {outcome['price']}\n"
+                                )
+                                if tip not in found_bets:
+                                    found_bets.append(tip)
 
     if found_bets:
-        header = f"🎯 *Gefilterte Tipps für heute ({today})*:\n\n"
+        header = "🎯 *Gefilterte Value-Tipps (nächste 36h)*:\n\n"
         send_telegram(header + "\n".join(found_bets))
     else:
-        send_telegram(f"Heute ({today}) keine Spiele mit Quote 1.50-1.85 gefunden.")
+        send_telegram("Keine passenden Quoten (1.45 - 1.90) gefunden.")
 
 
 if __name__ == "__main__":
