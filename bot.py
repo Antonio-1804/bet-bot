@@ -46,8 +46,8 @@ def scan_matches():
             commence_time = datetime.datetime.fromisoformat(match["commence_time"].replace("Z", "+00:00"))
             time_diff = commence_time - now
 
-            # Spiele der nächsten 48 Stunden
-            if not (datetime.timedelta(hours=0) <= time_diff <= datetime.timedelta(hours=48)):
+            # Scannt jetzt die nächsten 7 Tage (inklusive Wochenende):
+            if not (datetime.timedelta(hours=0) <= time_diff <= datetime.timedelta(days=7)):
                 continue
 
             home = match["home_team"]
@@ -80,13 +80,13 @@ def scan_matches():
                                     found_bets.append(tip)
 
     if found_bets:
-        header = "🎯 *Tor-Tipps (Über 2.5 & BTTS | nächste 48h)*:\n\n"
+        header = "🎯 *Tor-Tipps (Über 2.5 & BTTS | nächste 7 Tage)*:\n\n"
         chunks = [found_bets[i:i + 15] for i in range(0, len(found_bets), 15)]
         for chunk in chunks:
             send_telegram(header + "\n".join(chunk))
             header = ""
     else:
-        send_telegram("Aktuell keine passenden Tor-Tipps (Über 2.5 oder BTTS 1.65-1.95) gefunden.")
+        send_telegram("Aktuell keine passenden Tor-Tipps (Über 2.5 oder BTTS 1.65-1.95) für die nächsten 7 Tage gefunden.")
 
 if __name__ == "__main__":
     scan_matches()
