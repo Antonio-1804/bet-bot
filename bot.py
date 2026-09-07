@@ -32,7 +32,7 @@ def scan_matches():
         params = {
             "apiKey": API_KEY,
             "regions": "eu",
-            "markets": "totals,btts",
+            "markets": "h2h,totals,btts",
             "oddsFormat": "decimal"
         }
 
@@ -46,7 +46,7 @@ def scan_matches():
             commence_time = datetime.datetime.fromisoformat(match["commence_time"].replace("Z", "+00:00"))
             time_diff = commence_time - now
 
-            # Scannt jetzt die nächsten 7 Tage (inklusive Wochenende):
+            # Nächste 7 Tage
             if not (datetime.timedelta(hours=0) <= time_diff <= datetime.timedelta(days=7)):
                 continue
 
@@ -56,37 +56,55 @@ def scan_matches():
             if not bookmakers:
                 continue
 
+            match_done = False
             for bm in bookmakers:
+                if match_done:
+                    break
                 for market in bm.get("markets", []):
-                    # 1. Über 2.5 Tore (Quote 1.65 bis 1.95)
+                    # 1. Über 2.5 Tore (1.65 - 1.95)
                     if market["key"] == "totals":
                         for outcome in market.get("outcomes", []):
-                            point = outcome.get("point")
-                            name = outcome.get("name")
-                            price = outcome.get("price", 0)
-                            if name == "Over" and point == 2.5 and 1.65 <= price <= 1.95:
-                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Über 2.5 Tore\n📈 Quote: {price}\n"
-                                if tip not in found_bets:
-                                    found_bets.append(tip)
+                            if outcome.get("name") == "Over" and outcome.get("point") == 2.5:
+                                p = outcome.get("price", 0)
+                                if 1.65 <= p <= 1.95:
+                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Über 2.5 Tore\n📈 Quote: {p}\n"
+                                    if tip not in found_bets:
+                                        found_bets.append(tip)
+                                        match_done = True
+                                        break
 
-                    # 2. Beide Teams treffen (Quote 1.65 bis 1.95)
+                    # 2. Beide treffen: JA (1.65 - 1.95)
                     elif market["key"] == "btts":
                         for outcome in market.get("outcomes", []):
+                            if outcome.get("name") == "Yes":
+                                p = outcome.get("price", 0)
+                                if 1.65 <= p <= 1.95:
+                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Beide treffen: JA\n📈 Quote: {p}\n"
+                                    if tip not in found_bets:
+                                        found_bets.append(tip)
+                                        match_done = True
+                                        break
+
+                    # 3. Solider Favoritensieg (1.55 - 2.15)
+                    elif market["key"] == "h2h":
+                        for outcome in market.get("outcomes", []):
+                            p = outcome.get("price", 0)
                             name = outcome.get("name")
-                            price = outcome.get("price", 0)
-                            if name == "Yes" and 1.65 <= price <= 1.95:
-                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Beide treffen: JA (BTTS)\n📈 Quote: {price}\n"
+                            if 1.55 <= p <= 2.15 and name in [home, away]:
+                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Sieg {name}\n📈 Quote: {p}\n"
                                 if tip not in found_bets:
                                     found_bets.append(tip)
+                                    match_done = True
+                                    break
 
     if found_bets:
-        header = "🎯 *Tor-Tipps (Über 2.5 & BTTS | nächste 7 Tage)*:\n\n"
+        header = "🎯 *Top-Tipps (nächste 7 Tage)*:\n\n"
         chunks = [found_bets[i:i + 15] for i in range(0, len(found_bets), 15)]
         for chunk in chunks:
             send_telegram(header + "\n".join(chunk))
             header = ""
     else:
-        send_telegram("Aktuell keine passenden Tor-Tipps (Über 2.5 oder BTTS 1.65-1.95) für die nächsten 7 Tage gefunden.")
+        send_telegram("Aktuell keine passenden Quoten für die nächsten 7 Tage gefunden.")
 
 if __name__ == "__main__":
     scan_matches()
