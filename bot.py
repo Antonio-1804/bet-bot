@@ -15,9 +15,7 @@ LEAGUES = [
     "soccer_netherlands_eredivisie",
     "soccer_denmark_superliga",
     "soccer_uefa_champs_league",
-    "soccer_uefa_nations_league",
-    "soccer_argentina_primera_division",
-    "soccer_brazil_campeonato"
+    "soccer_uefa_nations_league"
 ]
 
 def send_telegram(message):
@@ -34,7 +32,7 @@ def scan_matches():
         params = {
             "apiKey": API_KEY,
             "regions": "eu",
-            "markets": "h2h,btts",
+            "markets": "totals,btts",
             "oddsFormat": "decimal"
         }
 
@@ -60,38 +58,35 @@ def scan_matches():
 
             for bm in bookmakers:
                 for market in bm.get("markets", []):
-                    # 1. Sieg-Wetten (Heim oder Auswärts, 1.30 bis 2.15)
-                    if market["key"] == "h2h":
-                        for outcome in market["outcomes"]:
-                            price = outcome["price"]
-                            if 1.30 <= price <= 2.15:
-                                if outcome["name"] == home:
-                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Heimsieg ({home})\n📈 Quote: {price}\n"
-                                    if tip not in found_bets:
-                                        found_bets.append(tip)
-                                elif outcome["name"] == away:
-                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Auswärtssieg ({away})\n📈 Quote: {price}\n"
-                                    if tip not in found_bets:
-                                        found_bets.append(tip)
+                    # 1. Über 2.5 Tore (Quote 1.65 bis 1.95)
+                    if market["key"] == "totals":
+                        for outcome in market.get("outcomes", []):
+                            point = outcome.get("point")
+                            name = outcome.get("name")
+                            price = outcome.get("price", 0)
+                            if name == "Over" and point == 2.5 and 1.65 <= price <= 1.95:
+                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Über 2.5 Tore\n📈 Quote: {price}\n"
+                                if tip not in found_bets:
+                                    found_bets.append(tip)
 
-                    # 2. Beide treffen (BTTS: Ja, 1.40 bis 2.10)
+                    # 2. Beide Teams treffen (Quote 1.65 bis 1.95)
                     elif market["key"] == "btts":
-                        for outcome in market["outcomes"]:
-                            price = outcome["price"]
-                            if outcome["name"] == "Yes" and 1.40 <= price <= 2.10:
-                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Beide treffen (BTTS)\n📈 Quote: {price}\n"
+                        for outcome in market.get("outcomes", []):
+                            name = outcome.get("name")
+                            price = outcome.get("price", 0)
+                            if name == "Yes" and 1.65 <= price <= 1.95:
+                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Beide treffen: JA (BTTS)\n📈 Quote: {price}\n"
                                 if tip not in found_bets:
                                     found_bets.append(tip)
 
     if found_bets:
-        # Nachricht splitten, falls mehr als 15 Spiele gefunden werden
-        header = "🎯 *Gefilterte Wett-Tipps (nächste 48h)*:\n\n"
+        header = "🎯 *Tor-Tipps (Über 2.5 & BTTS | nächste 48h)*:\n\n"
         chunks = [found_bets[i:i + 15] for i in range(0, len(found_bets), 15)]
         for chunk in chunks:
             send_telegram(header + "\n".join(chunk))
             header = ""
     else:
-        send_telegram("Aktuell keine anstehenden Spiele im Quotenbereich 1.30-2.15 gefunden.")
+        send_telegram("Aktuell keine passenden Tor-Tipps (Über 2.5 oder BTTS 1.65-1.95) gefunden.")
 
 if __name__ == "__main__":
     scan_matches()
