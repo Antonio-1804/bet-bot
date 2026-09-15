@@ -32,7 +32,7 @@ def scan_matches():
         params = {
             "apiKey": API_KEY,
             "regions": "eu",
-            "markets": "h2h,totals,btts",
+            "markets": "h2h,totals,spreads",
             "oddsFormat": "decimal"
         }
 
@@ -64,27 +64,16 @@ def scan_matches():
                     # 1. Über 2.5 Tore (1.65 - 1.95)
                     if market["key"] == "totals":
                         for outcome in market.get("outcomes", []):
-                            if outcome.get("name") == "Over" and outcome.get("point") == 2.5:
+                            if outcome.get("name") == "Over":
                                 p = outcome.get("price", 0)
                                 if 1.65 <= p <= 1.95:
-                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Über 2.5 Tore\n📈 Quote: {p}\n"
+                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp:über📈 Quote: {p}\n"
                                     if tip not in found_bets:
                                         found_bets.append(tip)
                                         match_done = True
                                         break
 
-                    # 2. Beide treffen: JA (1.65 - 1.95)
-                    elif market["key"] == "btts":
-                        for outcome in market.get("outcomes", []):
-                            if outcome.get("name") == "Yes":
-                                p = outcome.get("price", 0)
-                                if 1.65 <= p <= 1.95:
-                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Beide treffen: JA\n📈 Quote: {p}\n"
-                                    if tip not in found_bets:
-                                        found_bets.append(tip)
-                                        match_done = True
-                                        break
-
+                  
                     # 3. Solider Favoritensieg (1.55 - 2.15)
                     elif market["key"] == "h2h":
                         for outcome in market.get("outcomes", []):
