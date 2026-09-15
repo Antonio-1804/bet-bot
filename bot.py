@@ -6,16 +6,16 @@ TELEGRAM_TOKEN = "8913517520:AAFMJUKyLlzWZna_F9Xemvneejq51jzyeCE"
 CHAT_ID = "255781883"
 
 LEAGUES = [
-    "soccer_germany_bundesliga",
-    "soccer_germany_bundesliga2",
-    "soccer_spain_la_liga",
-    "soccer_italy_serie_a",
-    "soccer_france_ligue_one",
-    "soccer_epl",
-    "soccer_netherlands_eredivisie",
-    "soccer_denmark_superliga",
-    "soccer_uefa_champs_league",
-    "soccer_uefa_nations_league"
+    
+    # Eishockey
+    "icehockey_nhl",                    # USA/Kanada
+    "icehockey_sweden_hockey_league",   # Schweden
+    
+    # Basketball
+    "basketball_nba",                   # USA
+    "basketball_spain_acb",             # Spanien
+    "basketball_sweden_ligan"           # Schweden
+
 ]
 
 def send_telegram(message):
