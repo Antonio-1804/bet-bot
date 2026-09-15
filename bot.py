@@ -67,7 +67,7 @@ def scan_matches():
                             if outcome.get("name") == "Over":
                                 p = outcome.get("price", 0)
                                 if 1.65 <= p <= 1.95:
-                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp:über📈 Quote: {p}\n"
+                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Über {outcome.get('point')}\n📈 Quote: {p}\n"
                                     if tip not in found_bets:
                                         found_bets.append(tip)
                                         match_done = True
