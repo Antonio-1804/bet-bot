@@ -2,25 +2,26 @@ import datetime
 import requests
 
 API_KEY = "5e78f9f4bbbc50f46ae1e8bd4b27912d"
-TELEGRAM_TOKEN = "8913517520:AAFMJUKyLlzWZna_F9Xemvneejq51jzyeCE"
+TELEGRAM_TOKEN = "8913517520:AAFMOUkyl1zkMZna_F9Xemvneejq51jzyeCE"
 CHAT_ID = "255781883"
 
 LEAGUES = [
-    
-    # Eishockey
-    "icehockey_nhl",                    # USA/Kanada
-    "icehockey_sweden_hockey_league",   # Schweden
-    
-    # Basketball
-    "basketball_nba",                   # USA
-    "basketball_spain_acb",             # Spanien
-    "basketball_sweden_ligan"           # Schweden
-
+    # Deutschland
+    "soccer_germany_bundesliga",
+    "soccer_germany_bundesliga2",
+    # Niederlande
+    "soccer_netherlands_eredivisie",
+    # Schweiz
+    "soccer_switzerland_superleague",
 ]
 
-def send_telegram(message):
+def send_telegram(text):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    payload = {
+        "chat_id": CHAT_ID,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
     requests.post(url, json=payload)
 
 def scan_matches():
@@ -32,7 +33,7 @@ def scan_matches():
         params = {
             "apiKey": API_KEY,
             "regions": "eu",
-            "markets": "h2h,totals,spreads",
+            "markets": "totals",
             "oddsFormat": "decimal"
         }
 
@@ -46,54 +47,43 @@ def scan_matches():
             commence_time = datetime.datetime.fromisoformat(match["commence_time"].replace("Z", "+00:00"))
             time_diff = commence_time - now
 
-            # Nächste 7 Tage
+            # Spiele der nächsten 7 Tage prüfen
             if not (datetime.timedelta(hours=0) <= time_diff <= datetime.timedelta(days=7)):
                 continue
 
-            home = match["home_team"]
-            away = match["away_team"]
+            home = match.get("home_team")
+            away = match.get("away_team")
             bookmakers = match.get("bookmakers", [])
             if not bookmakers:
                 continue
 
             match_done = False
             for bm in bookmakers:
-                if match_done:
-                    break
                 for market in bm.get("markets", []):
-                    # 1. Über 2.5 Tore (1.65 - 1.95)
-                    if market["key"] == "totals":
+                    if market.get("key") == "totals":
                         for outcome in market.get("outcomes", []):
-                            if outcome.get("name") == "Over":
+                            # Filter für Über 2.5 Tore und Quote zwischen 1.40 und 1.55
+                            if outcome.get("name") == "Over" and outcome.get("point") == 2.5:
                                 p = outcome.get("price", 0)
-                                if 1.65 <= p <= 1.95:
-                                    tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Über {outcome.get('point')}\n📈 Quote: {p}\n"
+                                if 1.40 <= p <= 1.55:
+                                    tip = f"⚽ *{home}* vs. *{away}*\n🎯 Tipp: Über 2.5 Tore\n📊 Quote: {p}\n"
                                     if tip not in found_bets:
                                         found_bets.append(tip)
                                         match_done = True
                                         break
+                        if match_done:
+                            break
+                if match_done:
+                    break
 
-                  
-                    # 3. Solider Favoritensieg (1.55 - 2.15)
-                    elif market["key"] == "h2h":
-                        for outcome in market.get("outcomes", []):
-                            p = outcome.get("price", 0)
-                            name = outcome.get("name")
-                            if 1.55 <= p <= 2.15 and name in [home, away]:
-                                tip = f"⚽ *{home} vs. {away}*\n📌 Tipp: Sieg {name}\n📈 Quote: {p}\n"
-                                if tip not in found_bets:
-                                    found_bets.append(tip)
-                                    match_done = True
-                                    break
-
+    # Maximal 5 Spiele versenden
     if found_bets:
-        header = "🎯 *Top-Tipps (nächste 7 Tage)*:\n\n"
-        chunks = [found_bets[i:i + 15] for i in range(0, len(found_bets), 15)]
-        for chunk in chunks:
-            send_telegram(header + "\n".join(chunk))
-            header = ""
+        top_5 = found_bets[:5]
+        header = "🔥 *Top 5 Über 2.5 Tipps (nächste 7 Tage):*\n\n"
+        message = header + "\n".join(top_5)
+        send_telegram(message)
     else:
-        send_telegram("Aktuell keine passenden Quoten für die nächsten 7 Tage gefunden.")
+        send_telegram("Aktuell keine passenden Quoten (1.40 - 1.55) für Über 2.5 gefunden.")
 
 if __name__ == "__main__":
     scan_matches()
