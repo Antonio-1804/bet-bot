@@ -71,11 +71,12 @@ def scan_matches():
                 for market in bm.get("markets", []):
                     if market.get("key") == "totals":
                         for outcome in market.get("outcomes", []):
-                            # Filter für Über 2.5 Tore und Quote zwischen 1.40 und 1.55
+                            # Filter: Über 2.5 Tore, Quote 1.40 bis 1.55
                             if outcome.get("name") == "Over" and outcome.get("point") == 2.5:
                                 p = outcome.get("price", 0)
                                 if 1.40 <= p <= 1.55:
-                                    tip = f"⚽ *{home}* vs. *{away}*\n🎯 Tipp: Über 2.5 Tore\n📊 Quote: {p}\n"
+                                    match_time = commence_time.strftime("%d.%m. %H:%M")
+                                    tip = f"📅 *{match_time} Uhr*\n⚽ *{home}* vs. *{away}*\n🎯 Tipp: Über 2.5 Tore\n📊 Quote: {p}\n"
                                     if tip not in found_bets:
                                         found_bets.append(tip)
                                         match_done = True
