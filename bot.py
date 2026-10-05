@@ -2,7 +2,6 @@ import os
 import datetime
 import requests
 
-# Liest Werte aus GitHub Secrets oder nutzt die Fallbacks
 API_KEY = os.getenv("ODDS_API_KEY", "5e78f9f4bbbc50f46ae1e8bd4b27912d")
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "8913517520:AAFMOUkyl1zkMZna_F9Xemvneejq51jzyeCE")
 CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "255781883")
@@ -15,6 +14,8 @@ LEAGUES = [
     "soccer_netherlands_eredivisie",
     # Schweiz
     "soccer_switzerland_superleague",
+    # Italien (Serie A)
+    "soccer_italy_serie_a",
 ]
 
 def send_telegram(text):
@@ -86,14 +87,14 @@ def scan_matches():
 
     print(f"Gesamtanzahl gefundener Tipps: {len(found_bets)}")
 
-    # Maximal 5 Spiele versenden
+    # Maximal 6 Spiele versenden
     if found_bets:
-        top_5 = found_bets[:5]
-        header = "🔥 *Top 5 Über 2.5 Tipps (nächste 7 Tage):*\n\n"
-        message = header + "\n".join(top_5)
+        top_6 = found_bets[:6]
+        header = "🔥 *Top 6 Über 2.5 Tipps (nächste 7 Tage):*\n\n"
+        message = header + "\n".join(top_6)
         send_telegram(message)
     else:
-        send_telegram("Aktuell keine passenden Quoten (1.40 - 1.55) für Über 2.5 in DE/NL/CH gefunden.")
+        send_telegram("Aktuell keine passenden Quoten (1.40 - 1.55) für Über 2.5 in DE/NL/CH/IT gefunden.")
 
 if __name__ == "__main__":
     scan_matches()
