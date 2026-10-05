@@ -1,9 +1,11 @@
+import os
 import datetime
 import requests
 
-API_KEY = "5e78f9f4bbbc50f46ae1e8bd4b27912d"
-TELEGRAM_TOKEN = "8913517520:AAFMOUkyl1zkMZna_F9Xemvneejq51jzyeCE"
-CHAT_ID = "255781883"
+# Liest Werte aus GitHub Secrets oder nutzt die Fallbacks
+API_KEY = os.getenv("ODDS_API_KEY", "5e78f9f4bbbc50f46ae1e8bd4b27912d")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN", "8913517520:AAFMOUkyl1zkMZna_F9Xemvneejq51jzyeCE")
+CHAT_ID = os.getenv("TELEGRAM_CHAT_ID", "255781883")
 
 LEAGUES = [
     # Deutschland
@@ -22,12 +24,14 @@ def send_telegram(text):
         "text": text,
         "parse_mode": "Markdown"
     }
-    requests.post(url, json=payload)
+    res = requests.post(url, json=payload)
+    print(f"Telegram-Status: {res.status_code}, Antwort: {res.text}")
 
 def scan_matches():
     now = datetime.datetime.now(datetime.timezone.utc)
     found_bets = []
 
+    print("Starte Liga-Scan...")
     for league in LEAGUES:
         url = f"https://api.the-odds-api.com/v4/sports/{league}/odds/"
         params = {
@@ -38,10 +42,14 @@ def scan_matches():
         }
 
         res = requests.get(url, params=params)
+        print(f"Liga: {league} | HTTP-Status: {res.status_code}")
+
         if res.status_code != 200:
+            print(f"Fehler bei Liga {league}: {res.text}")
             continue
 
         matches = res.json()
+        print(f"-> {len(matches)} Spiele in {league} gefunden.")
 
         for match in matches:
             commence_time = datetime.datetime.fromisoformat(match["commence_time"].replace("Z", "+00:00"))
@@ -76,6 +84,8 @@ def scan_matches():
                 if match_done:
                     break
 
+    print(f"Gesamtanzahl gefundener Tipps: {len(found_bets)}")
+
     # Maximal 5 Spiele versenden
     if found_bets:
         top_5 = found_bets[:5]
@@ -83,7 +93,7 @@ def scan_matches():
         message = header + "\n".join(top_5)
         send_telegram(message)
     else:
-        send_telegram("Aktuell keine passenden Quoten (1.40 - 1.55) für Über 2.5 gefunden.")
+        send_telegram("Aktuell keine passenden Quoten (1.40 - 1.55) für Über 2.5 in DE/NL/CH gefunden.")
 
 if __name__ == "__main__":
     scan_matches()
